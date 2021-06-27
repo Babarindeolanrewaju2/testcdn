@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Northern Gas and Power (NGP Ltd) test</title>
+    <script src="https://unpkg.com/vue"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+    <script src="https://unpkg.com/vue-chartjs/dist/vue-chartjs.min.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+</head>
+<body>
+
+    <div id="app">
+        <v-app>
+            <v-container>
+                <v-layout row wrap>
+                     <v-flex xs12>
+                        <h1 class="display-2 mb-4 mt-15 text-center">{{ msg }}</h1>
+                        <p class="font-italic mb-2 mt-4 text-center">
+                            {{disclaimer}}
+                        </p>
+                        <p class="font-weight-light mb-2 text-center">{{time.updated}}</p>
+                        <p v-if="error" class="font-weight-light mt-7 text-center red accent-2" color="error">{{error}}</p>
+                        <div v-movable class="divChart">
+                            <bar-chart v-if="loaded" v-bind:chartdata="datacollection" :options="options"></bar-chart>
+                        </div>
+                    </v-flex>
+                </v-layout>
+              </v-container>   
+        </v-app>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+    <script src="./script/vue-movable.min.js"></script>
+    <script>
+        Vue.component("bar-chart", {
+        extends: VueChartJs.Bar,
+        props:  {
+            chartdata: {
+            type: Object,
+            default: null
+            },
+            options: {
+            type: Object,
+            default: null
+            }
+        },
+        mounted() {
+            this.renderChart(this.chartdata, this.options)
+        },
+        template: '<div :id="id" class="divChart"></div>'
+        });
+
+        var app = new Vue({
+            el: '#app',
+            vuetify: new Vuetify(),
+            data() {
+            return {
+            datacollection: {},
+            msg: "Data visualization with Vue.js, Veutify and Chart.js",
+            loaded: false,
+            labels: [],
+            data_set: [],
+            disclaimer: "",
+            time: {},
+            error: "",
+            options: {
+                scales: {
+                    yAxes: [{
+                            ticks: {
+                                beginAtZero: true
+                                },
+                                gridLines: {
+                                    display: true
+                                }
+                            }],
+                            xAxes: [{
+                                gridLines: {
+                                    display: false
+                                }
+                        }]
+                        },
+                        legend: {
+                            display: true
+                        },
+                        responsive: true,
+                maintainAspectRatio: false
+            }
+            };
+        },
+        async mounted () {
+            this.loaded = false
+
+            try {
+            const response = await axios.get('https://api.coindesk.com/v1/bpi/historical/close.json?start=2019-01-01&end=2019-12-31')
+            if(response.status === 200 ){
+                this.loaded = true
+            }
+            this.disclaimer = response.data.disclaimer
+            this.time = response.data.time
+
+                    for (let [key, value] of Object.entries(response.data.bpi)) {
+                        this.labels.push(key);
+                        this.data_set.push(value);
+                    }
+
+                    this.datacollection = {
+                    labels: this.labels,
+                    datasets: [
+                        {
+                        label: response.data.disclaimer,
+                        backgroundColor: "#f87979",
+                        data: this.data_set
+                        },
+                    ]
+                }
+
+            // eslint-disable-next-line   
+            /* eslint-disable */
+            } catch (e) {
+                this.error = e.message
+            }
+        },
+            methods: {
+            dateTime(date) {
+            return moment(date).format('MMMM Do YYYY, h:mm:ss a')
+            }
+        }
+        });
+    </script>
+</body>
+</html>
